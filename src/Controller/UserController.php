@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Entity\Enfant;
 use App\Entity\Groupe;
 use App\Form\UserType;
+use App\Form\LoginType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +23,7 @@ use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
+use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 
 /**
@@ -41,21 +43,43 @@ class UserController extends AbstractController
      * @param Request $request
      */
 
-    public function login(Request $request, JWTEncoderInterface $JWTEncoder)
+    public function login(Request $request, JWTEncoderInterface $JWTEncoder,AuthenticationUtils $authenticationUtils)
+    
     {
-        $user = $this->getUser();
-       
-        $isValid =$this->passwordEncoder;
-        if (!$isValid) {
-            return new JsonResponse('Votre username ou votre mot de passe est incorrect, veuillez saisir à nouveau');
-        }
 
+        // $user = $this->getUser();
+        // var_dump($user);die();
+
+        // $isValid =$this->passwordEncoder;
+        // if (!$isValid) {
+        //     return new JsonResponse('Votre username ou votre mot de passe est incorrect, veuillez saisir à nouveau');
+        // }
+        $utilisateur = new User();
+
+        $form = $this->createForm(LoginType::class, $utilisateur);
+        $form->handleRequest($request);
+        $data=$request->request->all();
+
+        $form->submit($data);
         
-        $token = $JWTEncoder->encode([
+        $form->handleRequest($request);
+
+        $user=$this->getDoctrine()->getRepository(User::class)->findOneBy(array('username'=>$utilisateur->getUsername()));
+
+        if($user==null ){
+            return new JsonResponse(['erreur' => "Nom d'utilisateur ou mot de passe erroné réessayer"]);
+        }else{
+            $pass=$this->passwordEncoder->isPasswordValid($user,$utilisateur->getPassword());
+            if($pass==false){
+                return new JsonResponse(['erreur' => "Nom d'utilisateur ou mot de passe erroné réessayer"]);
+            }
+            $token = $JWTEncoder->encode([
                 'roles'=>$user->getRoles(),
                 'username' => $user->getUsername(),
             ]);
         return new JsonResponse(['token' => $token]);
+        }
+        
     }
     /**
      * @Route("/login/inscription", name="inscription", methods={"GET","POST"})
