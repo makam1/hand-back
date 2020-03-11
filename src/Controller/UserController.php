@@ -5,8 +5,11 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\Enfant;
 use App\Entity\Groupe;
+use App\Entity\Evenement;
 use App\Form\UserType;
 use App\Form\LoginType;
+use App\Form\EnfantType;
+use App\Form\EvenementType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,13 +50,6 @@ class UserController extends AbstractController
     
     {
 
-        // $user = $this->getUser();
-        // var_dump($user);die();
-
-        // $isValid =$this->passwordEncoder;
-        // if (!$isValid) {
-        //     return new JsonResponse('Votre username ou votre mot de passe est incorrect, veuillez saisir à nouveau');
-        // }
         $utilisateur = new User();
 
         $form = $this->createForm(LoginType::class, $utilisateur);
@@ -67,17 +63,21 @@ class UserController extends AbstractController
         $user=$this->getDoctrine()->getRepository(User::class)->findOneBy(array('username'=>$utilisateur->getUsername()));
 
         if($user==null ){
-            return new JsonResponse(['erreur' => "Nom d'utilisateur ou mot de passe erroné réessayer"]);
-        }else{
+            return new JsonResponse("Nom d'utilisateur ou mot de passe erroné réessayer",500, [
+                'Content-Type'=>  'application/json'
+            ]);
+                }else{
             $pass=$this->passwordEncoder->isPasswordValid($user,$utilisateur->getPassword());
             if($pass==false){
-                return new JsonResponse(['erreur' => "Nom d'utilisateur ou mot de passe erroné réessayer"]);
+                return new JsonResponse("Nom d'utilisateur ou mot de passe erroné réessayer",500, [
+                    'Content-Type'=>  'application/json'
+                ]);
             }
             $token = $JWTEncoder->encode([
                 'roles'=>$user->getRoles(),
-                'username' => $user->getUsername(),
+                'username' => $user->getUsername(),  
             ]);
-        return new JsonResponse(['token' => $token]);
+        return new JsonResponse(['token' =>$token]);
         }
         
     }
@@ -102,19 +102,19 @@ class UserController extends AbstractController
         $groupe->setNomgroupe($utilisateur->getEmail());
         $entityManager->persist($groupe);
         $utilisateur->setGroupe($groupe);
-        $utilisateur->setRoles(["ROLE_PARENT"]);
+        $utilisateur->setRoles([$utilisateur->getRole()]);
         $entityManager->persist($utilisateur);
         $entityManager->flush(); 
        
         return new JsonResponse('Compte crée, Bienvenue'.$utilisateur->getUsername(),200, [
-            'Content-Type'=>  'application/json'
+            'Content-Type' => 'application/json'
         ]);
     }
     /**
-     * @Route("/parent", name="parent", methods={"GET","POST"})
+     * @Route("/ajout", name="ajout", methods={"GET","POST"})
      * 
      */
-    public function parent(Request $request, EntityManagerInterface $entityManager, UserPasswordEncoderInterface $encoder,SerializerInterface $serializer,ValidatorInterface $validator): Response
+    public function ajout(Request $request, EntityManagerInterface $entityManager, UserPasswordEncoderInterface $encoder,SerializerInterface $serializer,ValidatorInterface $validator): Response
     {
 
         $g=$this->getUser()->getGroupe();
@@ -126,13 +126,68 @@ class UserController extends AbstractController
         $hash = $encoder->encodePassword($utilisateur, $utilisateur->getPassword());
         $utilisateur->setPassword($hash);
         $utilisateur->setGroupe($g);
-    
-
+        $utilisateur->setRoles([$utilisateur->getRole()]);
         $entityManager->persist($utilisateur);
+        if($utilisateur->getRole()=='ROLE_ENFANT'){
+            $enfant = new Enfant();
+            $form1 = $this->createForm(EnfantType::class, $enfant);
+            $form1->handleRequest($request);
+            $form1->submit($data);
+            $enfant->setUser($utilisateur);
+            if($enfant->getEtablissement()==null|| $enfant->getNiveauscolaire()==null){
+
+                $enfant->setNiveauscolaire('non mentionné');
+                $enfant->setEtablissement('non mentionné');
+            }
+        
+            $entityManager->persist($enfant);
+
+
+        }
         $entityManager->flush();
             
         return new JsonResponse('membre ajouté avec succés',200, [
-            'Content-Type'=>  'application/json'
+            'Content-Type' =>  'application/json'
+        ]);
+    }
+   
+    /**
+     * @Route("/evenement", name="evenement", methods={"GET","POST"})
+     * 
+     */
+    public function evenement(Request $request, EntityManagerInterface $entityManager, UserPasswordEncoderInterface $encoder,SerializerInterface $serializer,ValidatorInterface $validator): Response
+    {
+
+        $g=$this->getUser()->getGroupe();
+        $event = new Evenement();
+        $form = $this->createForm(EvenementType::class, $event);
+        $form->handleRequest($request);
+        $data=$request->request->all();
+        $form->submit($data);
+        if($event->getDescriptif()==null){
+            $event->setDecriptif($event->getLibelle());   
+        }
+        if($event->getDatefin()==null){
+            $event->setDatefin($event->getDatedebut());   
+        }
+        if($event->getheuredebut()==null){
+            $event->setheuredebut('00:00');   
+        }else{
+            if($event->getheurefin()==null){
+                $event->setheurefin($event->getheuredebut());   
+            }
+        }
+        if($event->getheurefin()==null){
+            $event->setheurefin('00:00');   
+        }
+        
+        $event->setGroupe($g);   
+
+            $entityManager->persist($event);
+        $entityManager->flush();
+            
+        return new JsonResponse('evenement ajouté avec succés',200, [
+            'Content-Type' =>  'application/json'
         ]);
     }
    

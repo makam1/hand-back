@@ -15,13 +15,14 @@ class UserType extends AbstractType
         $builder
             ->add('username')
             ->add('password')
-            ->add('prenom')
-            ->add('nom')
-            ->add('telephone')
+            ->add('role')
+            // ->add('prenom')
+            // ->add('nom')
+            // ->add('telephone')
             ->add('datenaissance', DateType::class, [
-                'widget' => 'single_text',
-                'format' => 'yyyy-MM-dd',
-            ])
+                 'widget' => 'single_text',
+                 'format' => 'yyyy-MM-dd',
+             ])
             ->add('email')
         ;
     }

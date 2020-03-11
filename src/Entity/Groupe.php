@@ -28,9 +28,15 @@ class Groupe
      */
     private $users;
 
+    /**
+     * @ORM\OneToMany(targetEntity="App\Entity\Evenement", mappedBy="groupe")
+     */
+    private $evenements;
+
     public function __construct()
     {
         $this->users = new ArrayCollection();
+        $this->evenements = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -75,6 +81,37 @@ class Groupe
             // set the owning side to null (unless already changed)
             if ($user->getGroupe() === $this) {
                 $user->setGroupe(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|Evenement[]
+     */
+    public function getEvenements(): Collection
+    {
+        return $this->evenements;
+    }
+
+    public function addEvenement(Evenement $evenement): self
+    {
+        if (!$this->evenements->contains($evenement)) {
+            $this->evenements[] = $evenement;
+            $evenement->setGroupe($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEvenement(Evenement $evenement): self
+    {
+        if ($this->evenements->contains($evenement)) {
+            $this->evenements->removeElement($evenement);
+            // set the owning side to null (unless already changed)
+            if ($evenement->getGroupe() === $this) {
+                $evenement->setGroupe(null);
             }
         }
 
