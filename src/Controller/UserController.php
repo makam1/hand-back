@@ -122,11 +122,13 @@ class UserController extends AbstractController
         $form = $this->createForm(UserType::class, $utilisateur);
         $form->handleRequest($request);
         $data=$request->request->all();
+        $file=$request->files->all()['imageFile'];
         $form->submit($data);
         $hash = $encoder->encodePassword($utilisateur, $utilisateur->getPassword());
         $utilisateur->setPassword($hash);
         $utilisateur->setGroupe($g);
         $utilisateur->setRoles([$utilisateur->getRole()]);
+        $utilisateur->setImageFile($file);
         $entityManager->persist($utilisateur);
         if($utilisateur->getRole()=='ROLE_ENFANT'){
             $enfant = new Enfant();

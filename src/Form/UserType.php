@@ -7,6 +7,8 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Vich\UploaderBundle\Form\Type\VichImageType;
+
 
 class UserType extends AbstractType
 {
@@ -24,6 +26,7 @@ class UserType extends AbstractType
                  'format' => 'yyyy-MM-dd',
              ])
             ->add('email')
+            ->add('imageFile',VichImageType::class)
         ;
     }
 
@@ -31,6 +34,7 @@ class UserType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => User::class,
+            'csrf_protection'=>false
         ]);
     }
 }
